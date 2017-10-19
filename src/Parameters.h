@@ -114,6 +114,8 @@ public:
 	inline int getGridArea() const { return GridSize * GridSize; };
 
 	std::string getSimID(); // Merge ID for data sets
+
+    void ProcessArgs(std::string aArg);
 };
 
 #endif
