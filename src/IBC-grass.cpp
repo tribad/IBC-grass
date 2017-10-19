@@ -8,7 +8,8 @@
 
 using namespace std;
 
-int    startseed=-1;
+int    startseed  = -1;
+int    linetoexec = -1;
 string configfilename;
 //   Support functions for program parameters
 //
@@ -67,6 +68,19 @@ int main(int argc, char* argv[])
                      }
                  }
                  break;
+             case 'n':
+                 s++;
+                 if (*s!='\0') {
+                     linetoexec=atoi(s);
+                 } else {
+                     i++;
+                     s=argv[i];
+                     if (s!=0) {
+                         linetoexec=atoi(s);
+                     } else {
+                     }
+                 }
+                 break;
              case '-':    //  Long parameter
                  s++;     //  Move on to parameter name
                  process_long_parameter(s);
@@ -106,7 +120,7 @@ int main(int argc, char* argv[])
 
 	ifstream SimFile(Parameters::NameSimFile.c_str()); // Open simulation parameterization file
 	int _NRep;
-
+    int linecounter = 1;
 	// Temporary strings
 	string trash;
 	string data;
@@ -118,18 +132,21 @@ int main(int argc, char* argv[])
 
 	while (getline(SimFile, data))
 	{
-		for (int i = 0; i < _NRep; i++)
-		{
-			unique_ptr<GridEnvir> run = unique_ptr<GridEnvir>( new GridEnvir() );
-			run->GetSim(data);
-			run->RunNr = i;
+        if ((linetoexec == -1) || (linecounter == linetoexec)) {
+            for (int i = 0; i < _NRep; i++)
+            {
+                unique_ptr<GridEnvir> run = unique_ptr<GridEnvir>( new GridEnvir() );
+                run->GetSim(data);
+                run->RunNr = i;
 
-			cout << Parameters::params.getSimID() << endl;
-			cout << "Run " << run->RunNr << " \n";
+                cout << Parameters::params.getSimID() << endl;
+                cout << "Run " << run->RunNr << " \n";
 
-			run->InitRun();
-			run->OneRun();
-		}
+                run->InitRun();
+                run->OneRun();
+            }
+        }
+        linecounter++;
 	}
 
 	SimFile.close();
