@@ -15,7 +15,7 @@ SRC=Cell.cpp\
 
 OBJ=$(SRC:.cpp=.o)
 
-CXXFLAGS=-O0 -g -Wall
+CXXFLAGS=-O0 -g -Wall -std=c++14
 
 all : ibcgrass
 
