@@ -25,8 +25,9 @@ ibcgrass : depend $(OBJ)
 clean:
 	$(RM) -f $(PROJ)
 	$(RM) -f $(OBJ)
+	$(RM) -f depend
 
 depend : $(SRC)
-	$(CXX) $(CXXFLAGS) -M $(SRC) > depend
+	$(CXX) $(CXXFLAGS) -MM $(SRC) > depend
 
--include "depend"
+-include depend

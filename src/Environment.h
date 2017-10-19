@@ -34,7 +34,7 @@ public:
 	Environment();
 	~Environment();
 
-	void GetSim(std::string data); 	// Simulation read in
+    void GetSim(std::string data); 	// Simulation read in
 
 	/*
 	 * Helper function for comparing floating point numbers for equality
