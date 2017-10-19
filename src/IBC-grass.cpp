@@ -19,6 +19,7 @@ static void dump_help() {
             "\tibc <options> <simfilename> <outputprefix>\n"
             "\t\t-h/--help : print this usage information\n"
             "\t\t-c        : use this file with configuration data\n"
+            "\t\t-n        : line to execute in simulation\n"
             "\t\t-s        : set a starting seed for random number generators\n";
     exit(0);
 
