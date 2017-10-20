@@ -1,0 +1,11 @@
+#ifndef CSIMULATION_H
+#define CSIMULATION_H
+
+
+class CSimulation : public GridEnvir, public Parameters
+{
+public:
+    CSimulation();
+};
+
+#endif // CSIMULATION_H

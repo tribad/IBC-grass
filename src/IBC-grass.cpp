@@ -5,6 +5,8 @@
 #include <cassert>
 
 #include "GridEnvir.h"
+#include "Parameters.h"
+#include "CSimulation.h"
 
 using namespace std;
 
@@ -170,7 +172,7 @@ int main(int argc, char* argv[])
         if ((linetoexec == -1) || (linecounter == linetoexec)) {
             for (int i = 0; i < _NRep; i++)
             {
-                unique_ptr<GridEnvir> run = unique_ptr<GridEnvir>( new GridEnvir() );
+                unique_ptr<CSimulation> run = unique_ptr<CSimulation>( new CSimulation() );
                 run->GetSim(data);
                 run->RunNr = i;
 

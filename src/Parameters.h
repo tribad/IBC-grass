@@ -26,9 +26,9 @@ class Parameters
 {
 
 public:
-	static Parameters params;			// Static scenario parameters structure
+    static Parameters params;			// Static scenario parameters structure
 
-	// Input Files
+    // Input Files
 	static std::string NamePftFile;   	// Filename of PftTrait-File
 
 	int weekly;

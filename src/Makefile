@@ -12,7 +12,8 @@ SRC=Cell.cpp\
     RandomGenerator.cpp\
     Seed.cpp\
     Traits.cpp\
-    CThread.cpp
+    CThread.cpp\
+    CSimulation.cpp
 
 OBJ=$(SRC:.cpp=.o)
 
