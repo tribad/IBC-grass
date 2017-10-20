@@ -2,7 +2,7 @@
 #define CSIMULATION_H
 
 
-class CSimulation : public GridEnvir, public Parameters
+class CSimulation : public GridEnvir
 {
 public:
     CSimulation();

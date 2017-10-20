@@ -14,7 +14,7 @@
 //
 //  This class should hold all data that are specific to the environment that is
 //  simulated.
-class Environment
+class Environment : public Parameters
 {
 
 public:
