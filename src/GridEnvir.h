@@ -5,8 +5,9 @@
 #include <string>
 
 #include "Environment.h"
+#include "CThread.h"
 
-class GridEnvir: public Environment, public Grid
+class GridEnvir: public Environment, public Grid, public CThread
 {
 
 public:

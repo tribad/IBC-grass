@@ -11,16 +11,18 @@ SRC=Cell.cpp\
     Plant.cpp\
     RandomGenerator.cpp\
     Seed.cpp\
-    Traits.cpp
+    Traits.cpp\
+    CThread.cpp
 
 OBJ=$(SRC:.cpp=.o)
 
 CXXFLAGS=-O0 -g -Wall -std=c++14
+LDFLAGS=-lpthread -g
 
 all : ibcgrass
 
 ibcgrass : depend $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) -o $(PROJ)
+	$(CXX) $(LDFLAGS) $(OBJ) -o $(PROJ)
 
 clean:
 	$(RM) -f $(PROJ)
