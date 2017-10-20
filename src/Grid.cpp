@@ -57,6 +57,7 @@ void Grid::CellsInit()
         {
             index = x * SideCells + y;
             Cell* cell = new Cell(x, y);
+            cell->SetResource(Parameters::params.meanARes, Parameters::params.meanBRes);
             CellList[index] = cell;
         }
     }

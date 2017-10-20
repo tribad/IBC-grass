@@ -16,8 +16,8 @@ Cell::Cell(const unsigned int xx, const unsigned int yy) :
         aComp_weekly(0), bComp_weekly(0),
         occupied(false)
 {
-    AResConc = Parameters::params.meanARes;
-    BResConc = Parameters::params.meanBRes;
+//    AResConc = Parameters::params.meanARes;
+//    BResConc = Parameters::params.meanBRes;
 }
 
 //-----------------------------------------------------------------------------
