@@ -20,7 +20,8 @@ enum ITV_mode { off, on };
 enum experimentType { communityAssembly, invasionCriterion, catastrophicDisturbance };
 
 //---------------------------------------------------------------------------
-
+//
+//  This class hold all parameters that control the behaviour of the simulation in one run.
 class Parameters
 {
 
@@ -29,8 +30,6 @@ public:
 
 	// Input Files
 	static std::string NamePftFile;   	// Filename of PftTrait-File
-	static std::string NameSimFile;  	// Filename of Simulation-File
-	static std::string outputPrefix;	// Prefix for the output file, empty is single core, something user-supplied if multi-core
 
 	int weekly;
 	int ind_out;
@@ -115,7 +114,6 @@ public:
 
 	std::string getSimID(); // Merge ID for data sets
 
-    void ProcessArgs(std::string aArg);
 };
 
 #endif

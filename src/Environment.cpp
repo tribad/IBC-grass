@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "Environment.h"
+#include "IBC-grass.h"
 
 using namespace std;
 
@@ -154,7 +155,7 @@ void Environment::GetSim(string data)
 	////////////////////
 	// Design output file names
 	const string dir = "data/out/";
-	const string fid = Parameters::params.outputPrefix;
+    const string fid = outputPrefix;
 
 	string param = 	dir + fid + "_param.csv";
 	string trait = 	dir + fid + "_trait.csv";

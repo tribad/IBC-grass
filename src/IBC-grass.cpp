@@ -12,6 +12,12 @@ int    startseed  = -1;
 int    linetoexec = -1;
 int    proctoexec =  1;
 
+#define DEFAULT_SIMFILE "data/in/SimFile.txt"
+#define DEFAULT_OUTPREFIX "default"
+
+std::string NameSimFile = DEFAULT_SIMFILE; 	  // file with simulation scenarios
+std::string outputPrefix = DEFAULT_OUTPREFIX;
+
 string configfilename;
 //   Support functions for program parameters
 //
@@ -39,6 +45,18 @@ static void process_long_parameter(string aLongParameter) {
         dump_help();
     } else {
         std::cerr << "unknown parameter : " << name << "\n";
+    }
+}
+//
+//  Because the constructor already sets the default filename we check if the name has its default content
+//  and overwrite it. This is like a statemachine using the state of the filenames as state variable.
+void ProcessArgs(std::string aArg) {
+    if (NameSimFile == DEFAULT_SIMFILE) {
+        NameSimFile = aArg;
+    } else if (outputPrefix == DEFAULT_OUTPREFIX) {
+        outputPrefix = aArg;
+    } else {
+        std::cerr << "Do not except more than two file names.\nTake a look at the help with -h or --help\n";
     }
 }
 
@@ -124,18 +142,18 @@ int main(int argc, char* argv[])
                  break;
              }
          } else {
-             Parameters::params.ProcessArgs(argv[i]);
+             ProcessArgs(argv[i]);
          }
          i++;
      }
 
-    cerr << "Using simfile : " << Parameters::NameSimFile << endl << "Using output prefix : " << Parameters::outputPrefix << endl;
+    cerr << "Using simfile : " << NameSimFile << endl << "Using output prefix : " << outputPrefix << endl;
     //
     //  This is the end of a new program parameter parser.
     //
     //
 
-	ifstream SimFile(Parameters::NameSimFile.c_str()); // Open simulation parameterization file
+    ifstream SimFile(NameSimFile.c_str()); // Open simulation parameterization file
 	int _NRep;
     int linecounter = 1;
 	// Temporary strings

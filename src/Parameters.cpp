@@ -5,13 +5,8 @@
 #include "Parameters.h"
 #include "Environment.h"
 
-#define DEFAULT_SIMFILE "data/in/SimFile.txt"
-#define DEFAULT_OUTPREFIX "default"
-
 // Input Files
 std::string Parameters::NamePftFile; 							// trait file for experiment species
-std::string Parameters::NameSimFile = DEFAULT_SIMFILE; 	// file with simulation scenarios
-std::string Parameters::outputPrefix = DEFAULT_OUTPREFIX;
 
 Parameters Parameters::params;
 
@@ -52,15 +47,3 @@ std::string Parameters::getSimID()
 
 //-----------------------------------------------------------------------------
 
-//
-//  Because the constructor already sets the default filename we check if the name has its default content
-//  and overwrite it. This is like a statemachine using the state of the filenames as state variable.
-void Parameters::ProcessArgs(std::string aArg) {
-    if (Parameters::NameSimFile == DEFAULT_SIMFILE) {
-        Parameters::NameSimFile = aArg;
-    } else if (Parameters::outputPrefix == DEFAULT_OUTPREFIX) {
-        Parameters::outputPrefix = aArg;
-    } else {
-        std::cerr << "Do not except more than two file names.\nTake a look at the help with -h or --help\n";
-    }
-}

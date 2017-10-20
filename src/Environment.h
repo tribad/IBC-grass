@@ -11,7 +11,9 @@
 #include "Grid.h"
 #include "Output.h"
 #include "RandomGenerator.h"
-
+//
+//  This class should hold all data that are specific to the environment that is
+//  simulated.
 class Environment
 {
 
