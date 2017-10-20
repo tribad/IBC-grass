@@ -10,6 +10,8 @@ using namespace std;
 
 int    startseed  = -1;
 int    linetoexec = -1;
+int    proctoexec =  1;
+
 string configfilename;
 //   Support functions for program parameters
 //
@@ -20,6 +22,7 @@ static void dump_help() {
             "\t\t-h/--help : print this usage information\n"
             "\t\t-c        : use this file with configuration data\n"
             "\t\t-n        : line to execute in simulation\n"
+            "\t\t-p        : number of processors to use\n"
             "\t\t-s        : set a starting seed for random number generators\n";
     exit(0);
 
@@ -78,6 +81,19 @@ int main(int argc, char* argv[])
                      s=argv[i];
                      if (s!=0) {
                          linetoexec=atoi(s);
+                     } else {
+                     }
+                 }
+                 break;
+             case 'p':
+                 s++;
+                 if (*s!='\0') {
+                     proctoexec=atoi(s);
+                 } else {
+                     i++;
+                     s=argv[i];
+                     if (s!=0) {
+                         proctoexec=atoi(s);
                      } else {
                      }
                  }
