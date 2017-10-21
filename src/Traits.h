@@ -22,8 +22,8 @@ public:
     };
 
 //general
-    static std::map< std::string, std::unique_ptr<Traits> > pftTraitTemplates; // links of PFTs (Traits) used
-    static std::vector< std::string > pftInsertionOrder;
+    std::map< std::string, std::unique_ptr<Traits> > pftTraitTemplates; // links of PFTs (Traits) used
+    std::vector< std::string > pftInsertionOrder;
 
     traitType myTraitType; 	// The default trait set is a species -- only after being varied is it individualized.
     std::string PFT_ID;    	// name of functional type
@@ -77,10 +77,10 @@ public:
     Traits();
     Traits(const Traits& s);
 
-    void varyTraits();
-    static void ReadPFTDef(const std::string& file);
-    static std::unique_ptr<Traits> createTraitSetFromPftType(std::string type);
-    static std::unique_ptr<Traits> copyTraitSet(const std::unique_ptr<Traits> & t);
+    void varyTraits(double);
+    void ReadPFTDef(const std::string& file);
+    std::unique_ptr<Traits> createTraitSetFromPftType(std::string type);
+    std::unique_ptr<Traits> copyTraitSet(const std::unique_ptr<Traits> & t);
 
 };
 

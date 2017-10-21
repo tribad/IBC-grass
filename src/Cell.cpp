@@ -3,8 +3,11 @@
 #include <algorithm>
 #include <cassert>
 
+#include "itv_mode.h"
 #include "Cell.h"
-#include "Environment.h"
+#include "RandomGenerator.h"
+#include "Output.h"
+#include "IBC-grass.h"
 
 using namespace std;
 
@@ -65,7 +68,7 @@ double Cell::Germinate()
     while ( it != SeedBankList.end() )
     {
         auto & seed = *it;
-        if (Environment::rng.get01() < seed->pEstab)
+        if (rng.get01() < seed->pEstab)
         {
             sum_SeedMass += seed->mass;
             SeedlingList.push_back(std::move(seed)); // This seed germinates, add it to seedlings
@@ -90,6 +93,7 @@ void Cell::RemoveSeeds()
 }
 
 //-----------------------------------------------------------------------------
+#if 0
 
 void Cell::AboveComp()
 {
@@ -196,7 +200,7 @@ void Cell::BelowComp()
 
 //---------------------------------------------------------------------------
 
-double Cell::prop_res(const string type, const int layer, const int version) const
+double Cell::prop_res(const string& type, const int layer, const int version) const
 {
     switch (version)
     {
@@ -237,4 +241,143 @@ double Cell::prop_res(const string type, const int layer, const int version) con
         break;
     }
     return -1;
+}
+#endif
+
+void CellAsymPartSymV1::AboveComp() {
+    if (AbovePlantList.empty())
+        return;
+
+    double comp_tot = 0;
+    double comp_c = 0;
+
+    //1. sum of resource requirement
+    for (auto const& plant_ptr : AbovePlantList)
+    {
+        auto plant = plant_ptr.lock();
+
+        comp_tot += plant->comp_coef(1, 2);
+    }
+
+    //2. distribute resources
+    for (auto const& plant_ptr : AbovePlantList)
+    {
+        auto plant = plant_ptr.lock();
+        assert(plant);
+
+        comp_c = plant->comp_coef(1, 2);
+        plant->Auptake += AResConc * comp_c / comp_tot;
+    }
+
+    aComp_weekly = comp_tot;
+}
+
+void CellAsymPartSymV1::BelowComp() {
+    if (BelowPlantList.empty())
+        return;
+
+    double comp_tot = 0;
+    double comp_c = 0;
+
+    //1. sum of resource requirement
+    for (auto const& plant_ptr : BelowPlantList)
+    {
+        auto plant = plant_ptr.lock();
+        assert(plant);
+
+        comp_tot += plant->comp_coef(2, 1);
+    }
+
+    //2. distribute resources
+    for (auto const& plant_ptr : BelowPlantList)
+    {
+        auto plant = plant_ptr.lock();
+
+        comp_c = plant->comp_coef(2, 1);
+        plant->Buptake += BResConc * comp_c / comp_tot;
+    }
+
+    bComp_weekly = comp_tot;
+}
+
+void CellAsymPartSymV2::AboveComp() {
+    if (AbovePlantList.empty())
+        return;
+
+    double comp_tot = 0;
+    double comp_c = 0;
+
+    //1. sum of resource requirement
+    for (auto const& plant_ptr : AbovePlantList)
+    {
+        auto plant = plant_ptr.lock();
+
+        comp_tot += plant->comp_coef(1, 2) * prop_res_above(plant->pft());
+    }
+
+    //2. distribute resources
+    for (auto const& plant_ptr : AbovePlantList)
+    {
+        auto plant = plant_ptr.lock();
+        assert(plant);
+
+        comp_c = plant->comp_coef(1, 2) * prop_res_above(plant->pft());
+        plant->Auptake += AResConc * comp_c / comp_tot;
+    }
+
+    aComp_weekly = comp_tot;
+}
+
+void CellAsymPartSymV2::BelowComp() {
+    if (BelowPlantList.empty())
+        return;
+
+    double comp_tot = 0;
+    double comp_c = 0;
+
+    //1. sum of resource requirement
+    for (auto const& plant_ptr : BelowPlantList)
+    {
+        auto plant = plant_ptr.lock();
+        assert(plant);
+
+        comp_tot += plant->comp_coef(2, 1) * prop_res_below(plant->pft());
+    }
+
+    //2. distribute resources
+    for (auto const& plant_ptr : BelowPlantList)
+    {
+        auto plant = plant_ptr.lock();
+
+        comp_c = plant->comp_coef(2, 1) * prop_res_below(plant->pft());
+        plant->Buptake += BResConc * comp_c / comp_tot;
+    }
+
+    bComp_weekly = comp_tot;
+}
+
+double CellAsymPartSymV2::prop_res_above(const string &type) {
+    map<string, int>::const_iterator noa = PftNIndA.find(type);
+    if (noa != PftNIndA.end())
+    {
+        return 1.0 / std::sqrt(noa->second);
+    }
+    return -1.0;
+}
+
+double CellAsymPartSymV2::prop_res_below(const string &type) {
+    map<string, int>::const_iterator nob = PftNIndB.find(type);
+    if (nob != PftNIndB.end())
+    {
+        return 1.0 / std::sqrt(nob->second);
+    }
+    return -1;
+}
+
+double CellAsymPartSymV3::prop_res_above(const string &type) {
+    return PftNIndA.size() / (1.0 + PftNIndA.size());
+}
+
+double CellAsymPartSymV3::prop_res_below(const string &type) {
+    return PftNIndB.size() / (1.0 + PftNIndB.size());
 }

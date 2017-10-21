@@ -3,32 +3,20 @@
 #include <string>
 #include <sstream>
 
+#include "itv_mode.h"
+#include "Traits.h"
 #include "Environment.h"
+#include "RandomGenerator.h"
+#include "Output.h"
 #include "IBC-grass.h"
 
 using namespace std;
 
 const int Environment::WeeksPerYear = 30;
-int Environment::week;
-int Environment::year;
-
-int Environment::SimID;
-int Environment::ComNr;
-int Environment::RunNr;
-
-Output Environment::output;
-RandomGenerator Environment::rng;
-
-std::vector<std::string> Environment::PftInitList;		// list of PFTs used
-std::map<std::string, int> Environment::PftSurvTime;	// how long each PFT lives
-
 //-----------------------------------------------------------------------------
 
 Environment::Environment()
 {
-	Environment::rng = RandomGenerator();
-	Parameters::params = Parameters();
-
 	year = 1;
 	week = 1;
 
@@ -41,13 +29,6 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-	Traits::pftTraitTemplates.clear();
-	Traits::pftInsertionOrder.clear();
-
-	output.cleanup();
-
-	PftInitList.clear();
-	PftSurvTime.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -66,40 +47,40 @@ void Environment::GetSim(string data)
 		>> ComNr 											// Community number
 		>> IC_version 										// Stabilizing mechanisms
 		>> mode												// (0) Community assembly (normal), (1) invasion criterion, (2) catastrophic disturbance
-		>> Parameters::params.ITVsd 						// Standard deviation of intraspecific variation
-		>> Parameters::params.Tmax 							// End of run year
-		>> Parameters::params.meanARes 						// Aboveground resources
-		>> Parameters::params.meanBRes 	 					// Belowground resources
-		>> Parameters::params.AbvGrazProb 					// Aboveground grazing: probability
-		>> Parameters::params.AbvPropRemoved 				// Aboveground grazing: proportion of biomass removed
-		>> Parameters::params.BelGrazProb 					// Belowground grazing: probability
-		>> Parameters::params.BelGrazPerc 					// Belowground grazing: proportion of biomass removed
-		>> Parameters::params.BelGrazAlpha					// For sensitivity analysis of Belowground Grazing algorithm
-		>> Parameters::params.BelGrazHistorySize			// For sensitivity analysis of Belowground Grazing algorithm
-		>> Parameters::params.CatastrophicPlantMortality	// Catastrophic Disturbance: Percent of plant removal during Catastrophic Disturbance
-		>> Parameters::params.CatastrophicDistWeek			// Catastrophic Disturbance: Week of the disturbance
-		>> Parameters::params.SeedRainType					// Seed Rain: Off/On/Type
-		>> Parameters::params.SeedInput						// Seed Rain: Number of seeds to input per SeedRain event
-		>> Parameters::params.weekly						// Output: Weekly output rather than yearly
-		>> Parameters::params.ind_out						// Output: Individual-level output
-		>> Parameters::params.PFT_out						// Output: PFT-level output
-		>> Parameters::params.srv_out						// Output: End-of-run survival output
-		>> Parameters::params.trait_out						// Output: Trait-level output
-		>> Parameters::params.aggregated_out				// Output: Meta-level output
-		>> Parameters::NamePftFile 							// Input: Name of input community (PFT intialization) file
+        >> ITVsd 						// Standard deviation of intraspecific variation
+        >> Tmax 							// End of run year
+        >> meanARes 						// Aboveground resources
+        >> meanBRes 	 					// Belowground resources
+        >> AbvGrazProb 					// Aboveground grazing: probability
+        >> AbvPropRemoved 				// Aboveground grazing: proportion of biomass removed
+        >> BelGrazProb 					// Belowground grazing: probability
+        >> BelGrazPerc 					// Belowground grazing: proportion of biomass removed
+        >> BelGrazAlpha					// For sensitivity analysis of Belowground Grazing algorithm
+        >> BelGrazHistorySize			// For sensitivity analysis of Belowground Grazing algorithm
+        >> CatastrophicPlantMortality	// Catastrophic Disturbance: Percent of plant removal during Catastrophic Disturbance
+        >> CatastrophicDistWeek			// Catastrophic Disturbance: Week of the disturbance
+        >> SeedRainType					// Seed Rain: Off/On/Type
+        >> SeedInput						// Seed Rain: Number of seeds to input per SeedRain event
+        >> weekly						// Output: Weekly output rather than yearly
+        >> ind_out						// Output: Individual-level output
+        >> PFT_out						// Output: PFT-level output
+        >> srv_out						// Output: End-of-run survival output
+        >> trait_out						// Output: Trait-level output
+        >> aggregated_out				// Output: Meta-level output
+        >> NamePftFile 							// Input: Name of input community (PFT intialization) file
 		;
 
 	// set intraspecific competition version, intraspecific trait variation version, and competition modes
 	switch (IC_version)
 	{
 	case 0:
-		Parameters::params.stabilization = version1;
+        stabilization = version1;
 		break;
 	case 1:
-		Parameters::params.stabilization = version2;
+        stabilization = version2;
 		break;
 	case 2:
-		Parameters::params.stabilization = version3;
+        stabilization = version3;
 		break;
 	default:
 		break;
@@ -108,19 +89,19 @@ void Environment::GetSim(string data)
 	switch (mode)
 	{
 	case 0:
-		Parameters::params.mode = communityAssembly;
+        mode = communityAssembly;
 		break;
 	case 1:
-		Parameters::params.mode = invasionCriterion;
+        mode = invasionCriterion;
 		break;
 	case 2:
-		if (Parameters::params.CatastrophicPlantMortality > 0)
+        if (CatastrophicPlantMortality > 0)
 		{
-			Parameters::params.mode = catastrophicDisturbance;
+            mode = catastrophicDisturbance;
 		}
 		else
 		{
-			Parameters::params.mode = communityAssembly;
+            mode = communityAssembly;
 		}
 		break;
 	default:
@@ -128,42 +109,71 @@ void Environment::GetSim(string data)
 		exit(1);
 	}
 
-	if (Parameters::params.mode == invasionCriterion)
+    if (mode == invasionCriterion)
 	{
-		Parameters::params.Tmax += Parameters::params.Tmax_monoculture;
+        Tmax += Tmax_monoculture;
 	}
 
-	if (Parameters::params.ITVsd > 0)
+    if (ITVsd > 0)
 	{
-		Parameters::params.ITV = on;
+        ITV = on;
 	}
 	else
 	{
-		Parameters::params.ITV = off;
+        ITV = off;
 	}
 
-	if (Parameters::params.BelGrazPerc > 0)
+    if (BelGrazPerc > 0)
 	{
-		Parameters::params.BelGrazResidualPerc = exp(-1 * (Parameters::params.BelGrazPerc / 0.0651));
+        BelGrazResidualPerc = exp(-1 * (BelGrazPerc / 0.0651));
 	}
 
 	////////////////////
 	// Setup PFTs
-	Parameters::NamePftFile = "data/in/" + Parameters::NamePftFile;
-	Traits::ReadPFTDef(Parameters::NamePftFile);
+    NamePftFile = "data/in/" + NamePftFile;
 
-	////////////////////
-	// Design output file names
-	const string dir = "data/out/";
+    ////////////////////
+    // Design output file names
+    const string dir = "data/out/";
     const string fid = outputPrefix;
+    string ind;
+    string PFT;
+    string srv;
+    string trait;
+    string aggregated;
 
-	string param = 	dir + fid + "_param.csv";
-	string trait = 	dir + fid + "_trait.csv";
-	string srv = 	dir + fid + "_srv.csv";
-	string PFT = 	dir + fid + "_PFT.csv";
-	string ind = 	dir + fid + "_ind.csv";
-	string aggregated =   dir + fid + "_aggregated.csv";
+    string param = 	dir + fid + "_param.csv";
+    if (trait_out) {
+        trait = 	dir + fid + "_trait.csv";
+    }
+    if (srv_out) {
+        srv = 	dir + fid + "_srv.csv";
+    }
+    if (PFT_out) {
+        PFT = 	dir + fid + "_PFT.csv";
+    }
+    if (ind_out) {
+        ind = 	dir + fid + "_ind.csv";
+    }
+    if (aggregated_out) {
+        aggregated =   dir + fid + "_aggregated.csv";
+    }
 
-	output.setupOutput(param, trait, srv, PFT, ind, aggregated);
+    output.setupOutput(param, trait, srv, PFT, ind, aggregated);
+
+
+    traits.ReadPFTDef(Parameters::NamePftFile);
+
+}
+
+std::string Environment::getSimID()
+{
+
+    std::string s =
+            std::to_string(SimID) + "_" +
+            std::to_string(ComNr) + "_" +
+            std::to_string(RunNr);
+
+    return s;
 }
 

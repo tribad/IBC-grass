@@ -1,21 +1,17 @@
 
 #include <cassert>
 #include <iostream>
-
+#include "itv_mode.h"
 #include "Parameters.h"
+#include "Traits.h"
 #include "Environment.h"
 
 // Input Files
-std::string Parameters::NamePftFile; 							// trait file for experiment species
-
-Parameters Parameters::params;
-
 Parameters::Parameters() :
 		weekly(0), ind_out(0), PFT_out(2), srv_out(1), trait_out(1), aggregated_out(1),
 		AboveCompMode(asympart), BelowCompMode(sym), stabilization(version1), mode(communityAssembly),
 		Tmax_monoculture(10),
 		ITV(off), ITVsd(0),
-		GridSize(173),
 		Tmax(100),
 		seedMortality(0.5), winterDieback(0.5), backgroundMortality(0.007), litterDecomp(0.5),
 		meanARes(100), meanBRes(100),
@@ -34,16 +30,4 @@ Parameters::Parameters() :
 
 //-----------------------------------------------------------------------------
 
-std::string Parameters::getSimID()
-{
-
-	std::string s =
-			std::to_string(Environment::SimID) + "_" +
-			std::to_string(Environment::ComNr) + "_" +
-			std::to_string(Environment::RunNr);
-
-	return s;
-}
-
-//-----------------------------------------------------------------------------
 

@@ -3,15 +3,17 @@
 #include <string>
 #include <memory>
 #include <sstream>
+#include <fstream>
 
+#include "itv_mode.h"
 #include "Traits.h"
 #include "Environment.h"
 
+#include "RandomGenerator.h"
+#include "Output.h"
+#include "IBC-grass.h"
+
 using namespace std;
-
-map< string, unique_ptr<Traits> > Traits::pftTraitTemplates = map< string, unique_ptr<Traits> >();
-
-vector<string> Traits::pftInsertionOrder = vector<string>();
 
 /*
  * Default constructor
@@ -103,11 +105,10 @@ void Traits::ReadPFTDef(const string& file)
  * distribution balanced. Other, trait-specific, requirements are checked as well. (e.g.,
  * LMR cannot be greater than 1, memory cannot be less than 1).
  */
-void Traits::varyTraits()
+void Traits::varyTraits(double aSD)
 {
 
     assert(myTraitType == Traits::species);
-    assert(Parameters::params.ITV == on);
 
     myTraitType = Traits::individualized;
     double dev;
@@ -115,7 +116,7 @@ void Traits::varyTraits()
     double LMR_;
     do
     {
-        dev = Environment::rng.getGaussian(0, Parameters::params.ITVsd);
+        dev = rng.getGaussian(0, aSD);
         LMR_ = LMR + (LMR * dev);
     } while (dev < -1.0 || dev > 1.0 || LMR_ < 0 || LMR_ > 1);
     LMR = LMR_;
@@ -123,7 +124,7 @@ void Traits::varyTraits()
     double m0_, MaxMass_, SeedMass_, Dist_;
     do
     {
-        dev = Environment::rng.getGaussian(0, Parameters::params.ITVsd);
+        dev = rng.getGaussian(0, aSD);
         m0_ = m0 + (m0 * dev);
         MaxMass_ = maxMass + (maxMass * dev);
         SeedMass_ = seedMass + (seedMass * dev);
@@ -138,7 +139,7 @@ void Traits::varyTraits()
     int memory_;
     do
     {
-        dev = Environment::rng.getGaussian(0, Parameters::params.ITVsd);
+        dev = rng.getGaussian(0, aSD);
         Gmax_ = Gmax + (Gmax * dev);
         memory_ = memory - (memory * dev);
     } while (dev < -1.0 || dev > 1.0 || Gmax_ < 0 || memory_ < 1);
@@ -148,7 +149,7 @@ void Traits::varyTraits()
     double palat_, SLA_;
     do
     {
-        dev = Environment::rng.getGaussian(0, Parameters::params.ITVsd);
+        dev = rng.getGaussian(0, aSD);
         palat_ = palat + (palat * dev);
         SLA_ = SLA + (SLA * dev);
     } while (dev < -1.0 || dev > 1.0 || palat_ < 0 || SLA_ < 0);
@@ -158,7 +159,7 @@ void Traits::varyTraits()
     double meanSpacerlength_, sdSpacerlength_;
     do
     {
-        dev = Environment::rng.getGaussian(0, Parameters::params.ITVsd);
+        dev = rng.getGaussian(0, aSD);
         meanSpacerlength_ = meanSpacerlength + (meanSpacerlength * dev);
         sdSpacerlength_ = sdSpacerlength + (sdSpacerlength * dev);
     } while (dev < -1.0 || dev > 1.0 || meanSpacerlength_ < 0 || sdSpacerlength_ < 0);

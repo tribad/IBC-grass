@@ -3,8 +3,11 @@
 #include <iostream>
 #include <vector>
 
+#include "itv_mode.h"
 #include "Seed.h"
+#include "Traits.h"
 #include "Environment.h"
+#include "Plant.h"
 
 using namespace std;
 
@@ -13,14 +16,14 @@ using namespace std;
 /*
  * Constructor for normal reproduction
  */
-Seed::Seed(const shared_ptr<Plant> & plant, Cell* _cell) :
+Seed::Seed(const unique_ptr<Traits> & t, Cell* _cell, ITV_mode itv, double aSD) :
 		cell(NULL),
 		age(0), toBeRemoved(false)
 {
-	traits = Traits::createTraitSetFromPftType(plant->traits->PFT_ID);
+    traits = make_unique<Traits>(*t);
 
-	if (Parameters::params.ITV == on) {
-		traits->varyTraits();
+    if (itv == on) {
+        traits->varyTraits(aSD);
 	}
 
 	pEstab = traits->pEstab;
@@ -35,14 +38,14 @@ Seed::Seed(const shared_ptr<Plant> & plant, Cell* _cell) :
 /*
  * Constructor for initial establishment (with germination pre-set)
  */
-Seed::Seed(std::string PFT_ID, Cell*_cell, double new_estab) :
+Seed::Seed(const unique_ptr<Traits> & t, Cell*_cell, double new_estab, ITV_mode itv, double aSD) :
 		cell(NULL),
 		age(0), toBeRemoved(false)
 {
-	traits = Traits::createTraitSetFromPftType(PFT_ID);
+    traits = make_unique<Traits>(*t);
 
-	if (Parameters::params.ITV == on) {
-		traits->varyTraits();
+    if (itv == on) {
+        traits->varyTraits(aSD);
 	}
 
 	pEstab = new_estab;

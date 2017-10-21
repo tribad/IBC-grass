@@ -22,7 +22,7 @@ class Plant
 private:
 	Cell* cell;
 
-	double ReproGrow(double uptake);
+    double ReproGrow(double uptake, int aWeek);
 	double ShootGrow(double shres);
 	double RootGrow(double rres);
 
@@ -59,17 +59,17 @@ public:
 	double spacerLengthToGrow;
 
 	// Constructors
-	Plant(const std::unique_ptr<Seed> & seed); 						// from a germinated seed
-	Plant(double x, double y, const std::shared_ptr<Plant> & plant); 	// for clonal establishment
+    Plant(const std::unique_ptr<Seed> & seed, ITV_mode itv); 						// from a germinated seed
+    Plant(double x, double y, const std::shared_ptr<Plant> & plant, ITV_mode itv); 	// for clonal establishment
 	~Plant();
 
-	void Grow(); 									 // shoot-root resource allocation and plant growth in two layers
-	void Kill();  									 // Mortality due to resource shortage or at random
-	void DecomposeDead();     						 // calculate mass shrinkage of dead plants
-	void WinterLoss(); 							 	 // removal of aboveground biomass in winter
+    void Grow(int aWeek); 									 // shoot-root resource allocation and plant growth in two layers
+    void Kill(double);  									 // Mortality due to resource shortage or at random
+    void DecomposeDead(double);     						 // calculate mass shrinkage of dead plants
+    void WinterLoss(double); 							 	 // removal of aboveground biomass in winter
 	bool stressed() const;							 // return true if plant is stressed
 	void weeklyReset();								 // reset competitive parameters that depend on current biomass
-	double RemoveShootMass();  						 // removal of aboveground biomass by grazing
+    double RemoveShootMass(double);  						 // removal of aboveground biomass by grazing
 	void RemoveRootMass(const double mass_removed);  // removal of belowground biomass by root herbivory
 	double comp_coef(const int layer, const int symmetry) const; // competition coefficient for a plant (for AboveComp and BelowComp)
 

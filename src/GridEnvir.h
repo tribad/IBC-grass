@@ -4,10 +4,7 @@
 
 #include <string>
 
-#include "Environment.h"
-#include "CThread.h"
-
-class GridEnvir: public Environment, public Grid, public CThread
+class GridEnvir: public Grid, public CThread
 {
 
 public:
@@ -24,6 +21,13 @@ public:
 	bool exitConditions();
 
 	void SeedRain();  // distribute seeds on the grid each year
+private:
+    void print_param(); // prints general parameterization data
+    void print_srv_and_PFT(const std::vector< std::shared_ptr<Plant> > & PlantList); 	// prints PFT data
+    std::map<std::string, PFT_struct> buildPFT_map(const std::vector< std::shared_ptr<Plant> > & PlantList);
+    void print_trait(); // prints the traits of each PFT
+    void print_ind(const std::vector< std::shared_ptr<Plant> > & PlantList); 			// prints individual data
+    void print_aggregated(const std::vector< std::shared_ptr<Plant> > & PlantList);		// prints longitudinal data that's not just each PFT
 
 };
 

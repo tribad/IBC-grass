@@ -34,7 +34,7 @@ public:
     Cell(const unsigned int xx,
          const unsigned int yy);
 
-    ~Cell();
+    virtual ~Cell();
 
     void weeklyReset();
     void SetResource(double Ares, double Bres);
@@ -45,18 +45,44 @@ public:
      * function is overwritten if inherited class with different competitive
      * size-asymmetry of niche differentiation is used
      */
-    void AboveComp();
+    virtual void AboveComp() = 0;
 
     /* competition function for size symmetric below-ground resource competition
      * function is overwritten if inherited class with different competitive
      * size-asymmetry of niche differentiation is used
      */
-    void BelowComp();
-
-    //portion cell resources the plant is gaining
-    double prop_res(const std::string type, const int layer, const int version) const;
-
+    virtual void BelowComp() = 0;
 };
 
+class CellAsymPartSymV1 : public Cell {
+public:
+    CellAsymPartSymV1(const unsigned int xx,
+                      const unsigned int yy) : Cell(xx,yy) {};
+    virtual ~CellAsymPartSymV1() {};
+    virtual void AboveComp();
+    virtual void BelowComp();
+};
+
+class CellAsymPartSymV2 : public Cell {
+public:
+    CellAsymPartSymV2(const unsigned int xx,
+                      const unsigned int yy) : Cell(xx,yy) {};
+    virtual ~CellAsymPartSymV2() {};
+    virtual void AboveComp();
+    virtual void BelowComp();
+private:
+    virtual double prop_res_above(const std::string & type);
+    virtual double prop_res_below(const std::string& type);
+};
+
+class CellAsymPartSymV3 : public CellAsymPartSymV2 {
+public:
+    CellAsymPartSymV3(const unsigned int xx,
+                      const unsigned int yy) : CellAsymPartSymV2(xx,yy) {};
+    virtual ~CellAsymPartSymV3() {};
+private:
+    virtual double prop_res_above(const std::string & type);
+    virtual double prop_res_below(const std::string& type);
+};
 //---------------------------------------------------------------------------
 #endif

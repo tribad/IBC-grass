@@ -21,8 +21,8 @@ class Seed
        int age;
        bool toBeRemoved;
 
-       Seed(const std::shared_ptr<Plant> & plant, Cell* cell);
-       Seed(std::string PFT_ID, Cell* cell, const double estab);
+       Seed(const std::unique_ptr<Traits> & t, Cell* cell, ITV_mode itv, double aSD);
+       Seed(const std::unique_ptr<Traits> & t, Cell* cell, const double estab, ITV_mode itv, double aSD);
 
        Cell* getCell() { return cell; }
 

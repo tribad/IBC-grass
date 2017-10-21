@@ -8,16 +8,17 @@
 
 #include "Cell.h"
 #include "Plant.h"
-#include "Parameters.h"
+#include "Environment.h"
 
 //! Class with all spatial algorithms where plant individuals interact in space
 /*! Functions for competition and plant growth are overwritten by inherited classes
  to include different degrees of size asymmetry and different concepts of niche differentiation
  */
-class Grid
+class Grid : public Environment
 {
 
 private:
+    std::vector<int> ZOIBase;
     std::vector< std::shared_ptr<Genet> > GenetList;
     void establishRamets(const std::shared_ptr<Plant> plant); 	// establish ramets
     void shareResources();                						// share resources among connected ramets
@@ -61,11 +62,7 @@ public:
     int GetNclonalPlants();   	// number of living clonal plants
     int GetNPlants();         	// number of living non-clonal plants
     int GetNSeeds();			// number of seeds
-
 };
-
-// vector of cell indices increasing in distance to grid center
-static std::vector<int> ZOIBase;
 
 // periodic boundary conditions
 void Torus(int& xx, int& yy); // Change by reference

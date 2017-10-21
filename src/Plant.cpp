@@ -2,9 +2,15 @@
 #include <cassert>
 #include <iostream>
 
+#include "itv_mode.h"
+#include "Cell.h"
+#include "Seed.h"
 #include "Plant.h"
 #include "Environment.h"
 #include "Traits.h"
+#include "RandomGenerator.h"
+#include "Output.h"
+#include "IBC-grass.h"
 
 using namespace std;
 
@@ -18,7 +24,7 @@ using namespace std;
 
 int Plant::staticID = 0;
 
-Plant::Plant(const unique_ptr<Seed> & seed) :
+Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) :
 		cell(NULL), mReproRamets(0), genet(),
 		plantID(++staticID), x(0), y(0),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
@@ -26,9 +32,9 @@ Plant::Plant(const unique_ptr<Seed> & seed) :
 		spacerLengthToGrow(0)
 {
 
-	traits = Traits::copyTraitSet(seed->traits);
+    traits = make_unique<Traits>(*(seed->traits));
 
-	if (Parameters::params.ITV == on) {
+    if (itv == on) {
 		assert(traits->myTraitType == Traits::individualized);
 	} else {
 		assert(traits->myTraitType == Traits::species);
@@ -51,7 +57,7 @@ Plant::Plant(const unique_ptr<Seed> & seed) :
  * Clonal Growth - The new Plant inherits its parameters from 'plant'.
  * Genet is the same as for plant
  */
-Plant::Plant(double x, double y, const std::shared_ptr<Plant> & plant) :
+Plant::Plant(double x, double y, const std::shared_ptr<Plant> & plant, ITV_mode itv) :
 		cell(NULL), mReproRamets(0), genet(plant->genet),
 		plantID(++staticID), x(x), y(y),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
@@ -59,9 +65,9 @@ Plant::Plant(double x, double y, const std::shared_ptr<Plant> & plant) :
 		spacerLengthToGrow(0)
 {
 
-	traits = Traits::copyTraitSet(plant->traits);
+    traits = make_unique<Traits>(*(plant->traits));
 
-	if (Parameters::params.ITV == on) {
+    if (itv == on) {
 		assert(traits->myTraitType == Traits::individualized);
 	} else {
 		assert(traits->myTraitType == Traits::species);
@@ -99,7 +105,7 @@ void Plant::setCell(Cell* _cell) {
 /**
  * Growth of reproductive organs (seeds and spacer).
  */
-double Plant::ReproGrow(double uptake)
+double Plant::ReproGrow(double uptake, int aWeek)
 {
 	double VegRes;
 
@@ -110,7 +116,7 @@ double Plant::ReproGrow(double uptake)
 		double SpacerRes = uptake * traits->allocSpacer;
 
 		// during the seed-production-weeks
-		if (Environment::week >= traits->flowerWeek && Environment::week < traits->dispersalWeek)
+        if ((aWeek >= traits->flowerWeek) && (aWeek < traits->dispersalWeek))
 		{
 			//seed production
 			double dm_seeds = max(0.0, traits->growth * SeedRes);
@@ -169,7 +175,7 @@ void Plant::SpacerGrow() {
  * adapted growth formula with correction factor for the conversion rate
  * to simulate implicit biomass reduction via root herbivory
  */
-void Plant::Grow() //grow plant one timestep
+void Plant::Grow(int aWeek) //grow plant one timestep
 {
 	double dm_shoot, dm_root, alloc_shoot;
 	double LimRes, ShootRes, RootRes, VegRes;
@@ -180,8 +186,7 @@ void Plant::Grow() //grow plant one timestep
 
 	// which resource is limiting growth?
 	LimRes = min(Buptake, Auptake); // two layers
-	VegRes = ReproGrow(LimRes);
-
+    VegRes = ReproGrow(LimRes, aWeek);
 	// allocation to shoot and root growth
 	alloc_shoot = Buptake / (Buptake + Auptake); // allocation coefficient
 
@@ -259,13 +264,13 @@ bool Plant::stressed() const
 /**
  * Kill plant depending on stress level and base mortality. Stochastic process.
  */
-void Plant::Kill()
+void Plant::Kill(double aBackgroundMortality)
 {
 	assert(traits->memory >= 1);
 
-	double pmort = (double(isStressed) / double(traits->memory)) + Parameters::params.backgroundMortality; // stress mortality + random background mortality
+    double pmort = (double(isStressed) / double(traits->memory)) + aBackgroundMortality; // stress mortality + random background mortality
 
-	if (Environment::rng.get01() < pmort)
+    if (rng.get01() < pmort)
 	{
 		isDead = true;
 	}
@@ -275,15 +280,15 @@ void Plant::Kill()
 /**
  * Litter decomposition with deletion at 10mg.
  */
-void Plant::DecomposeDead() {
+void Plant::DecomposeDead(double aLitterDecomp) {
 
 	assert(isDead);
 
 	const double minmass = 10; // mass at which dead plants are removed
 
 	mRepro = 0;
-	mShoot *= Parameters::params.litterDecomp;
-	mRoot *= Parameters::params.litterDecomp;
+    mShoot *= aLitterDecomp;
+    mRoot *= aLitterDecomp;
 
 	if (GetMass() < minmass)
 	{
@@ -334,14 +339,14 @@ int Plant::GetNRamets() const
 /**
  * Remove half shoot mass and seed mass from a plant.
  */
-double Plant::RemoveShootMass()
+double Plant::RemoveShootMass(double aBiteSize)
 {
 	double mass_removed = 0;
 
 	if (mShoot + mRepro > 1) // only remove mass if shootmass > 1 mg
 	{
-		mass_removed = Parameters::params.BiteSize * mShoot + mRepro;
-		mShoot *= 1 - Parameters::params.BiteSize;
+        mass_removed = aBiteSize * mShoot + mRepro;
+        mShoot *= 1 - aBiteSize;
 		mRepro = 0;
 	}
 
@@ -367,9 +372,9 @@ void Plant::RemoveRootMass(const double mass_removed)
 /**
  * Winter dieback of aboveground biomass. Aging of Plant.
  */
-void Plant::WinterLoss()
+void Plant::WinterLoss(double aWinterDieback)
 {
-	mShoot *= 1 - Parameters::params.winterDieback;
+    mShoot *= 1 - aWinterDieback;
 	mRepro = 0;
 	age++;
 }

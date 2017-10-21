@@ -4,11 +4,18 @@
 #include <memory>
 #include <cassert>
 
+#include "CThread.h"
+#include "itv_mode.h"
+#include "Grid.h"
+#include "Output.h"
 #include "GridEnvir.h"
 #include "Parameters.h"
 #include "CSimulation.h"
+#include "RandomGenerator.h"
 
 using namespace std;
+
+long   GridSize = 173;   //  Side length in cm
 
 int    startseed  = -1;
 int    linetoexec = -1;
@@ -21,6 +28,10 @@ std::string NameSimFile = DEFAULT_SIMFILE; 	  // file with simulation scenarios
 std::string outputPrefix = DEFAULT_OUTPREFIX;
 
 string configfilename;
+
+RandomGenerator rng;
+
+Output output;
 //   Support functions for program parameters
 //
 //   This is the usage dumper to the console.
@@ -150,6 +161,8 @@ int main(int argc, char* argv[])
      }
 
     cerr << "Using simfile : " << NameSimFile << endl << "Using output prefix : " << outputPrefix << endl;
+
+
     //
     //  This is the end of a new program parameter parser.
     //
@@ -176,7 +189,7 @@ int main(int argc, char* argv[])
                 run->GetSim(data);
                 run->RunNr = i;
 
-                cout << Parameters::params.getSimID() << endl;
+                cout << run->getSimID() << endl;
                 cout << "Run " << run->RunNr << " \n";
 
                 run->InitRun();

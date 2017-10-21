@@ -4,9 +4,12 @@
 #include <memory>
 #include <math.h>
 
+#include "itv_mode.h"
 #include "Grid.h"
 #include "Environment.h"
 #include "RandomGenerator.h"
+#include "Output.h"
+#include "IBC-grass.h"
 
 using namespace std;
 
@@ -14,23 +17,14 @@ using namespace std;
 
 Grid::Grid()
 {
-    CellsInit();
 
-    ZOIBase = vector<int>(Parameters::params.getGridArea(), 0);
-
-    for (unsigned int i = 0; i < ZOIBase.size(); i++)
-    {
-        ZOIBase[i] = i;
-    }
-
-    sort(ZOIBase.begin(), ZOIBase.end(), CompareIndexRel);
 }
 
 //---------------------------------------------------------------------------
 
 Grid::~Grid()
 {
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
         delete cell;
@@ -48,7 +42,7 @@ Grid::~Grid()
 void Grid::CellsInit()
 {
     int index;
-    int SideCells = Parameters::params.GridSize;
+    int SideCells = GridSize;
     CellList = new Cell*[SideCells * SideCells];
 
     for (int x = 0; x < SideCells; x++)
@@ -56,11 +50,42 @@ void Grid::CellsInit()
         for (int y = 0; y < SideCells; y++)
         {
             index = x * SideCells + y;
-            Cell* cell = new Cell(x, y);
-            cell->SetResource(Parameters::params.meanARes, Parameters::params.meanBRes);
-            CellList[index] = cell;
+            Cell* cell = 0;
+
+            if ((BelowCompMode == sym) && (AboveCompMode == asympart)) {
+                switch (stabilization) {
+                case version1:
+                    cell = new CellAsymPartSymV1(x, y);
+                    break;
+                case version2:
+                    cell = new CellAsymPartSymV2(x, y);
+                    break;
+                case version3:
+                    cell = new CellAsymPartSymV3(x, y);
+                    break;
+                default:
+                    cerr << "Invalid stabilization mode. Exiting\n";
+                    exit(0);
+                }
+            }
+
+            if (cell != 0) {
+                cell->SetResource(meanARes, meanBRes);
+                CellList[index] = cell;
+            } else {
+                cerr << "Something went wrong. \n";
+            }
         }
     }
+
+    ZOIBase = vector<int>(getGridArea(), 0);
+
+    for (unsigned int i = 0; i < ZOIBase.size(); i++)
+    {
+        ZOIBase[i] = i;
+    }
+
+    sort(ZOIBase.begin(), ZOIBase.end(), CompareIndexRel);
 }
 
 //-----------------------------------------------------------------------------
@@ -69,12 +94,12 @@ void Grid::PlantLoop()
 {
     for (auto const& p : PlantList)
     {
-        if (Parameters::params.ITV == on)
+        if (ITV == on)
             assert(p->traits->myTraitType == Traits::individualized);
 
         if (!p->isDead)
         {
-            p->Grow();
+            p->Grow(week);
 
             if (p->traits->clonal)
             {
@@ -83,16 +108,16 @@ void Grid::PlantLoop()
             }
 
 //			if (CEnvir::week >= p->Traits->DispWeek)
-            if (Environment::week > p->traits->dispersalWeek)
+            if (week > p->traits->dispersalWeek)
             {
                 DisperseSeeds(p);
             }
 
-            p->Kill();
+            p->Kill(backgroundMortality);
         }
         else
         {
-            p->DecomposeDead();
+            p->DecomposeDead(litterDecomp);
         }
     }
 }
@@ -107,10 +132,10 @@ void getTargetCell(int& xx, int& yy, const float mean, const float sd)
 {
     double sigma = std::sqrt(std::log((sd / mean) * (sd / mean) + 1));
     double mu = std::log(mean) - 0.5 * sigma;
-    double dist = exp(Environment::rng.getGaussian(mu, sigma));
+    double dist = exp(rng.getGaussian(mu, sigma));
 
     // direction uniformly distributed
-    double direction = 2 * Pi * Environment::rng.get01();
+    double direction = 2 * Pi * rng.get01();
     xx = round(xx + cos(direction) * dist);
     yy = round(yy + sin(direction) * dist);
 }
@@ -138,9 +163,9 @@ void Grid::DisperseSeeds(const std::shared_ptr<Plant> & plant)
 
         Torus(x, y); // recalculates position for torus
 
-        Cell* cell = CellList[x * Parameters::params.GridSize + y];
+        Cell* cell = CellList[x * GridSize + y];
 
-        cell->SeedBankList.push_back(make_unique<Seed>(plant, cell));
+        cell->SeedBankList.push_back(make_unique<Seed>(traits.createTraitSetFromPftType(plant->traits->PFT_ID), cell, ITV, ITVsd));
     }
 }
 
@@ -152,10 +177,10 @@ void Grid::DisperseRamets(const std::shared_ptr<Plant> & p)
 
     if (p->GetNRamets() == 1)
     {
-        double distance = std::abs(Environment::rng.getGaussian(p->traits->meanSpacerlength, p->traits->sdSpacerlength));
+        double distance = std::abs(rng.getGaussian(p->traits->meanSpacerlength, p->traits->sdSpacerlength));
 
         // uniformly distributed direction
-        double direction = 2 * Pi * Environment::rng.get01();
+        double direction = 2 * Pi * rng.get01();
         int x = round(p->getCell()->x + cos(direction) * distance);
         int y = round(p->getCell()->y + sin(direction) * distance);
 
@@ -163,7 +188,7 @@ void Grid::DisperseRamets(const std::shared_ptr<Plant> & p)
         Torus(x, y);
 
         // save distance and direction in the plant
-        std::shared_ptr<Plant> Spacer = make_shared<Plant>(x, y, p);
+        std::shared_ptr<Plant> Spacer = make_shared<Plant>(x, y, p, ITV);
         Spacer->spacerLengthToGrow = distance; // This spacer now has to grow to get to its new cell
         p->growingSpacerList.push_back(Spacer);
     }
@@ -190,15 +215,15 @@ void Grid::CoverCells()
         for (int a = 0; a < Amax; a++)
         {
             int x = plant->getCell()->x
-                    + ZOIBase[a] / Parameters::params.GridSize
-                    - Parameters::params.GridSize / 2;
+                    + ZOIBase[a] / GridSize
+                    - GridSize / 2;
             int y = plant->getCell()->y
-                    + ZOIBase[a] % Parameters::params.GridSize
-                    - Parameters::params.GridSize / 2;
+                    + ZOIBase[a] % GridSize
+                    - GridSize / 2;
 
             Torus(x, y);
 
-            Cell* cell = CellList[x * Parameters::params.GridSize + y];
+            Cell* cell = CellList[x * GridSize + y];
 
             // Aboveground
             if (a < Ashoot)
@@ -228,7 +253,7 @@ void Grid::CoverCells()
  */
 void Grid::ResetWeeklyVariables()
 {
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
         cell->weeklyReset();
@@ -247,7 +272,7 @@ void Grid::ResetWeeklyVariables()
  */
 void Grid::DistributeResource()
 {
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
 
@@ -309,7 +334,7 @@ void Grid::EstablishmentLottery()
         return;
     }
 
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
 
@@ -325,7 +350,7 @@ void Grid::EstablishmentLottery()
             continue;
         }
 
-        double n = Environment::rng.get01() * sumSeedMass;
+        double n = rng.get01() * sumSeedMass;
         for (auto const& itr : cell->SeedlingList)
         {
             n -= itr->mass;
@@ -343,7 +368,7 @@ void Grid::EstablishmentLottery()
 
 void Grid::establishSeedlings(const std::unique_ptr<Seed> & seed)
 {
-    shared_ptr<Plant> p = make_shared<Plant>(seed);
+    shared_ptr<Plant> p = make_shared<Plant>(seed, ITV);
 
     shared_ptr<Genet> genet = make_shared<Genet>();
     GenetList.push_back(genet);
@@ -370,11 +395,11 @@ void Grid::establishRamets(const std::shared_ptr<Plant> plant)
             continue;
         }
 
-        Cell* cell = CellList[spacer->x * Parameters::params.GridSize + spacer->y];
+        Cell* cell = CellList[spacer->x * GridSize + spacer->y];
 
         if (!cell->occupied)
         {
-            if (Environment::rng.get01() < Parameters::params.rametEstab)
+            if (rng.get01() < rametEstab)
             {
                 // This spacer successfully establishes into a ramet (CPlant) of a genet
                 auto Genet = spacer->getGenet().lock();
@@ -401,8 +426,8 @@ void Grid::establishRamets(const std::shared_ptr<Plant> plant)
                 int _x, _y;
                 do
                 {
-                    _x = Environment::rng.getUniformInt(5) - 2;
-                    _y = Environment::rng.getUniformInt(5) - 2;
+                    _x = rng.getUniformInt(5) - 2;
+                    _y = rng.getUniformInt(5) - 2;
                 } while (_x == 0 && _y == 0);
 
                 int x = std::round(spacer->x + _x);
@@ -425,7 +450,7 @@ void Grid::establishRamets(const std::shared_ptr<Plant> plant)
 
 void Grid::SeedMortalityAge()
 {
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
 
@@ -446,27 +471,27 @@ void Grid::Disturb()
 {
     Grid::below_biomass_history.push_back(GetTotalBelowMass());
 
-    if (Environment::rng.get01() < Parameters::params.AbvGrazProb) {
+    if (rng.get01() < AbvGrazProb) {
         GrazingAbvGr();
     }
 
-    if (Environment::rng.get01() < Parameters::params.BelGrazProb) {
+    if (rng.get01() < BelGrazProb) {
         GrazingBelGr();
     }
 
-    if (Parameters::params.NCut > 0) {
-        switch (Parameters::params.NCut) {
+    if (NCut > 0) {
+        switch (NCut) {
         case 1:
             if (Environment::week == 22)
-                Cutting(Parameters::params.CutHeight);
+                Cutting(CutHeight);
             break;
         case 2:
             if (Environment::week == 22 || Environment::week == 10)
-                Cutting(Parameters::params.CutHeight);
+                Cutting(CutHeight);
             break;
         case 3:
             if (Environment::week == 22 || Environment::week == 10 || Environment::week == 16)
-                Cutting(Parameters::params.CutHeight);
+                Cutting(CutHeight);
             break;
         default:
             cerr << "CGrid::Disturb() - wrong input";
@@ -484,7 +509,7 @@ void Grid::RunCatastrophicDisturbance()
         if (p->isDead)
             continue;
 
-        if (Environment::rng.get01() < Parameters::params.CatastrophicPlantMortality)
+        if (rng.get01() < CatastrophicPlantMortality)
         {
             p->isDead = true;
         }
@@ -503,11 +528,11 @@ void Grid::RunCatastrophicDisturbance()
  */
 void Grid::GrazingAbvGr()
 {
-    double ResidualMass = Parameters::params.MassUngrazable * Parameters::params.getGridArea() * 0.0001;
+    double ResidualMass = MassUngrazable * getGridArea() * 0.0001;
 
     double TotalAboveMass = GetTotalAboveMass();
 
-    double MaxMassRemove = min(TotalAboveMass - ResidualMass, TotalAboveMass * Parameters::params.AbvPropRemoved);
+    double MaxMassRemove = min(TotalAboveMass - ResidualMass, TotalAboveMass * AbvPropRemoved);
     double MassRemoved = 0;
 
     while (MassRemoved < MaxMassRemove)
@@ -520,7 +545,7 @@ void Grid::GrazingAbvGr()
 
         double max_palatability = Plant::getPalatability(p);
 
-        std::shuffle( PlantList.begin(), PlantList.end(), Environment::rng.getRNG() );
+        std::shuffle( PlantList.begin(), PlantList.end(), rng.getRNG() );
 
         for (auto const& plant : PlantList)
         {
@@ -536,9 +561,9 @@ void Grid::GrazingAbvGr()
 
             double grazProb = Plant::getPalatability(plant) / max_palatability;
 
-            if (Environment::rng.get01() < grazProb)
+            if (rng.get01() < grazProb)
             {
-                MassRemoved += plant->RemoveShootMass();
+                MassRemoved += plant->RemoveShootMass(BiteSize);
             }
         }
     }
@@ -579,10 +604,10 @@ void Grid::GrazingBelGr()
                         return s;
                     });
 
-    const double alpha = Parameters::params.BelGrazAlpha;
+    const double alpha = BelGrazAlpha;
 
     std::vector<double> rolling_mean;
-    vector<double>::size_type historySize = Parameters::params.BelGrazHistorySize; // in Weeks
+    vector<double>::size_type historySize = BelGrazHistorySize; // in Weeks
     if (Grid::below_biomass_history.size() > historySize)
     {
         rolling_mean = std::vector<double>(Grid::below_biomass_history.end() - historySize, Grid::below_biomass_history.end());
@@ -592,16 +617,16 @@ void Grid::GrazingBelGr()
         rolling_mean = std::vector<double>(Grid::below_biomass_history.begin(), Grid::below_biomass_history.end());
     }
 
-    double fn_o = Parameters::params.BelGrazPerc * ( accumulate(rolling_mean.begin(), rolling_mean.end(), 0) / rolling_mean.size() );
+    double fn_o = BelGrazPerc * ( accumulate(rolling_mean.begin(), rolling_mean.end(), 0) / rolling_mean.size() );
 
     // Functional response
-    if (bt - fn_o < bt * Parameters::params.BelGrazResidualPerc)
+    if (bt - fn_o < bt * BelGrazResidualPerc)
     {
-        fn_o = bt - bt * Parameters::params.BelGrazResidualPerc;
+        fn_o = bt - bt * BelGrazResidualPerc;
     }
 
-    Environment::output.BlwgrdGrazingPressure.push_back(fn_o);
-    Environment::output.ContemporaneousRootmassHistory.push_back(bt);
+    output.BlwgrdGrazingPressure.push_back(fn_o);
+    output.ContemporaneousRootmassHistory.push_back(bt);
 
     double fn = fn_o;
     double t_br = 0; // total biomass removed
@@ -707,7 +732,7 @@ void Grid::Winter()
     RemovePlants();
     for (auto const& p : PlantList)
     {
-        p->WinterLoss();
+        p->WinterLoss(winterDieback);
     }
 }
 
@@ -715,12 +740,12 @@ void Grid::Winter()
 
 void Grid::SeedMortalityWinter()
 {
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
         for (auto const& seed : cell->SeedBankList)
         {
-            if (Environment::rng.get01() < Parameters::params.seedMortality)
+            if (rng.get01() < seedMortality)
             {
                 seed->toBeRemoved = true;
             }
@@ -742,12 +767,12 @@ void Grid::InitSeeds(string PFT_ID, const int n, const double estab)
 {
     for (int i = 0; i < n; ++i)
     {
-        int x = Environment::rng.getUniformInt(Parameters::params.GridSize);
-        int y = Environment::rng.getUniformInt(Parameters::params.GridSize);
+        int x = rng.getUniformInt(GridSize);
+        int y = rng.getUniformInt(GridSize);
 
-        Cell* cell = CellList[x * Parameters::params.GridSize + y];
+        Cell* cell = CellList[x * GridSize + y];
 
-        cell->SeedBankList.push_back(make_unique<Seed>(PFT_ID, cell, estab));
+        cell->SeedBankList.push_back(make_unique<Seed>(traits.createTraitSetFromPftType(PFT_ID), cell, estab, ITV, ITVsd));
     }
 }
 
@@ -760,21 +785,21 @@ void Grid::SetCellResources()
 {
     int gweek = Environment::week;
 
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i) {
+    for (int i = 0; i < getGridArea(); ++i) {
         Cell* cell = CellList[i];
         cell->SetResource(
                 max(0.0,
-                        (-1.0) * Parameters::params.Aampl
+                        (-1.0) * Aampl
                                 * cos(
                                         2.0 * Pi * gweek
                                                 / double(Environment::WeeksPerYear))
-                                + Parameters::params.meanARes),
+                                + meanARes),
                 max(0.0,
-                        Parameters::params.Bampl
+                        Bampl
                                 * sin(
                                         2.0 * Pi * gweek
                                                 / double(Environment::WeeksPerYear))
-                                + Parameters::params.meanBRes));
+                                + meanBRes));
     }
 }
 
@@ -789,7 +814,7 @@ double Distance(const double xx, const double yy, const double x, const double y
 
 bool CompareIndexRel(const int i1, const int i2)
 {
-    const int n = Parameters::params.GridSize;
+    const int n = GridSize;
 
     return Distance(i1 / n, i1 % n, n / 2, n / 2) < Distance(i2 / n, i2 % n, n / 2, n / 2);
 }
@@ -800,16 +825,16 @@ bool CompareIndexRel(const int i1, const int i2)
  */
 void Torus(int& xx, int& yy)
 {
-    xx %= Parameters::params.GridSize;
+    xx %= GridSize;
     if (xx < 0)
     {
-        xx += Parameters::params.GridSize;
+        xx += GridSize;
     }
 
-    yy %= Parameters::params.GridSize;
+    yy %= GridSize;
     if (yy < 0)
     {
-        yy += Parameters::params.GridSize;
+        yy += GridSize;
     }
 }
 
@@ -850,7 +875,7 @@ double Grid::GetTotalBelowMass()
 double Grid::GetTotalAboveComp()
 {
     double above_comp = 0;
-    for (int i = 0; i < Parameters::params.getGridArea(); i++)
+    for (int i = 0; i < getGridArea(); i++)
     {
         Cell* cell = CellList[i];
         above_comp += cell->aComp_weekly;
@@ -862,7 +887,7 @@ double Grid::GetTotalAboveComp()
 double Grid::GetTotalBelowComp()
 {
     double below_comp = 0;
-    for (int i = 0; i < Parameters::params.getGridArea(); i++)
+    for (int i = 0; i < getGridArea(); i++)
     {
         Cell* cell = CellList[i];
         below_comp += cell->bComp_weekly;
@@ -919,7 +944,7 @@ int Grid::GetNPlants() //count non-clonal plants
 int Grid::GetNSeeds()
 {
     int seedCount = 0;
-    for (int i = 0; i < Parameters::params.getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
         seedCount = seedCount + int(cell->SeedBankList.size());
@@ -927,3 +952,4 @@ int Grid::GetNSeeds()
 
     return seedCount;
 }
+

@@ -8,8 +8,7 @@
 #include <cmath>
 #include <limits>
 
-#include "Grid.h"
-#include "Output.h"
+#include "Parameters.h"
 #include "RandomGenerator.h"
 //
 //  This class should hold all data that are specific to the environment that is
@@ -18,20 +17,17 @@ class Environment : public Parameters
 {
 
 public:
-	static RandomGenerator rng;
-	static Output output;
-
-	static std::vector<std::string> PftInitList; 	// list of Pfts used
-	static std::map<std::string, int> PftSurvTime;	// array for survival times of PFTs (in years);
+    std::vector<std::string> PftInitList; 	// list of Pfts used
+    std::map<std::string, int> PftSurvTime;	// array for survival times of PFTs (in years);
 
 	const static int WeeksPerYear;  // number of weeks per year (constantly at value 30)
 
-	static int week;	// current week (1-30)
-	static int year;    // current year
+    int week;	// current week (1-30)
+    int year;    // current year
 
-	static int SimID;   // simulation-ID
-	static int ComNr;	// Community identifier for multiple parameter settings of the same community.
-	static int RunNr;   // repetition number
+    int SimID;   // simulation-ID
+    int ComNr;	// Community identifier for multiple parameter settings of the same community.
+    int RunNr;   // repetition number
 
 	Environment();
 	~Environment();
@@ -44,7 +40,8 @@ public:
 	inline static bool AreSame(double const a, double const b) {
 	    return std::fabs(a - b) < std::numeric_limits<double>::epsilon();
 	}
-
+    std::string getSimID(); // Merge ID for data sets
+    Traits traits;
 };
 
 #endif

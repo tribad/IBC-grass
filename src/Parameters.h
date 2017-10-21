@@ -15,7 +15,7 @@ enum CompMode { sym, asympart, asymtot };
  */
 enum stabilizationMode { version1, version2, version3 };
 
-enum ITV_mode { off, on };
+
 
 enum experimentType { communityAssembly, invasionCriterion, catastrophicDisturbance };
 
@@ -26,10 +26,8 @@ class Parameters
 {
 
 public:
-    static Parameters params;			// Static scenario parameters structure
-
-    // Input Files
-	static std::string NamePftFile;   	// Filename of PftTrait-File
+     // Input Files
+    std::string NamePftFile;   	// Filename of PftTrait-File
 
 	int weekly;
 	int ind_out;
@@ -64,8 +62,6 @@ public:
 	ITV_mode ITV;
 	double ITVsd;
 
-	// Gridspace
-	int GridSize;     			// side length in cm
 
 	// General parameters
 	int Tmax;         			// simulation time
@@ -109,10 +105,6 @@ public:
 
 	// Constructor
 	Parameters();
-
-    inline int getGridArea() const { return GridSize * GridSize; }
-
-	std::string getSimID(); // Merge ID for data sets
 
 };
 
