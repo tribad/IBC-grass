@@ -72,6 +72,9 @@ public:
     double mSpacer;  			// resources for 1 cm spacer (default=70)
 // myc stat
     std::string mycStat;
+    double      mycZOI;
+    double      mycCOMP;
+    double      mycC;
 
 //functions..
     Traits();
