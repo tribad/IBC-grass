@@ -3,7 +3,8 @@
 #include <sstream>
 #include <memory>
 #include <cassert>
-
+#include <stdint.h>
+#include <float.h>
 #include "CThread.h"
 #include "itv_mode.h"
 #include "Grid.h"
