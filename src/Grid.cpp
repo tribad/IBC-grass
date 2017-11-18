@@ -113,7 +113,7 @@ void Grid::PlantLoop()
                 DisperseSeeds(p);
             }
 
-            p->Kill(backgroundMortality);
+            p->Kill(backgroundMortality, week);
         }
         else
         {
