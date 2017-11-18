@@ -13,7 +13,8 @@
 #include "IBC-grass.h"
 
 using namespace std;
-
+long  pass=0;
+long  hit=0;
 //-----------------------------------------------------------------------------
 /**
  * constructor - germination
@@ -264,16 +265,21 @@ bool Plant::stressed() const
 /**
  * Kill plant depending on stress level and base mortality. Stochastic process.
  */
-void Plant::Kill(double aBackgroundMortality)
+void Plant::Kill(double aBackgroundMortality, int aWeek)
 {
 	assert(traits->memory >= 1);
 
     double pmort = (double(isStressed) / double(traits->memory)) + aBackgroundMortality; // stress mortality + random background mortality
-
-    if (rng.get01() < pmort)
+    double amort = rng.rng() / (double)UINT32_MAX;
+    if (amort < pmort)
 	{
+        hit++;
 		isDead = true;
-	}
+//        std::cerr << "Week: " << aWeek << " Pass: " << pass << " Hit: " << hit << " Stress: " << isStressed << std::endl;
+    } else {
+        pass++;
+    }
+
 }
 
 //-----------------------------------------------------------------------------

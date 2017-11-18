@@ -64,7 +64,7 @@ public:
 	~Plant();
 
     void Grow(int aWeek); 									 // shoot-root resource allocation and plant growth in two layers
-    void Kill(double);  									 // Mortality due to resource shortage or at random
+    void Kill(double, int);  									 // Mortality due to resource shortage or at random
     void DecomposeDead(double);     						 // calculate mass shrinkage of dead plants
     void WinterLoss(double); 							 	 // removal of aboveground biomass in winter
 	bool stressed() const;							 // return true if plant is stressed
